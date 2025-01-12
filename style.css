@@ -108,7 +108,7 @@ nav {
     left: -100px;
     padding: 0.5em 0;
     transition: left 0.3s;
-    margin-left: 4em;
+    /* margin-left: 4em; */
 }
   
 .menu-item-link {

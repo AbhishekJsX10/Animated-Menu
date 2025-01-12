@@ -4,31 +4,60 @@ document.addEventListener("DOMContentLoaded", function() {
     const menuContainer = document.querySelector(".menu-container");
     const menuItems = document.querySelectorAll(".menu-item");
     const links = document.querySelectorAll(".menu-item");
-    let isInitialLoadComplete = false;
-  
-    menuToggle.addEventListener("click", () => {
-      menuContainer.style.left = "0%";
-      if (!isInitialLoadComplete) {
-        cleanupAllEffects();
-      }
-      shuffleAll();
-      animateMenuItems(menuItems, "in");
-    });
-  
-    closeBtn.addEventListener("click", () => {
-      menuContainer.style.left = "-50%";
-      animateMenuItems(menuItems, "out");
-      cleanupAllEffects();
-    });
+
+    function addShuffleEffect(element) {
+        if (element.cleanupShuffleEffect) {
+            element.cleanupShuffleEffect();
+        }
+
+        const chars = element.querySelectorAll(".char");
+        const originalText = [...chars].map((char) => char.textContent);
+        let intervals = [];
+
+        chars.forEach((char, index) => {
+            const interval = setInterval(() => {
+                char.textContent = String.fromCharCode(
+                    65 + Math.floor(Math.random() * 26)
+                );
+            }, 50);
+            intervals.push(interval);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                char.textContent = originalText[index];
+            }, 500 + index * 50);
+        });
+
+        element.cleanupShuffleEffect = () => {
+            intervals.forEach(interval => clearInterval(interval));
+            chars.forEach((char, index) => {
+                char.textContent = originalText[index];
+            });
+        };
+    }
 
     function cleanupAllEffects() {
         links.forEach(link => {
             const targetElement = link.querySelector(
-                ".menu-item-link a, .menu-title p, .menu-content p"
+                ".menu-item-link a"
             );
             if (targetElement && targetElement.cleanupShuffleEffect) {
                 targetElement.cleanupShuffleEffect();
             }
+            const spanElement = link.querySelector("span");
+            if (spanElement && spanElement.cleanupShuffleEffect) {
+                spanElement.cleanupShuffleEffect();
+            }
+        });
+
+        // Clean up menu sub items
+        document.querySelectorAll('.menu-sub-item').forEach(item => {
+            const elements = item.querySelectorAll('p');
+            elements.forEach(el => {
+                if (el.cleanupShuffleEffect) {
+                    el.cleanupShuffleEffect();
+                }
+            });
         });
     }
 
@@ -45,6 +74,24 @@ document.addEventListener("DOMContentLoaded", function() {
     const menuTitle = new SplitType(".menu-title p", { types: "words, chars" });
     const menuContent = new SplitType(".menu-content p", { types: "words, chars" });
 
+    // Add hover effects to menu sub items
+    document.querySelectorAll('.menu-sub-item .menu-title p, .menu-sub-item .menu-content p').forEach(element => {
+        element.addEventListener('mouseenter', (e) => {
+            e.stopPropagation();
+            if (element.cleanupShuffleEffect) {
+                element.cleanupShuffleEffect();
+            }
+            addShuffleEffect(element);
+        });
+
+        element.addEventListener('mouseleave', (e) => {
+            e.stopPropagation();
+            if (element.cleanupShuffleEffect) {
+                element.cleanupShuffleEffect();
+            }
+        });
+    });
+
     document.querySelectorAll(".menu-item").forEach((item) => {
         const linkElement = item.querySelector(".menu-item-link a");
         const bgHover = item.querySelector(".bg-hover");
@@ -60,64 +107,27 @@ document.addEventListener("DOMContentLoaded", function() {
             spanElement.style.left = width + 40 + "px";
           }
 
-          function addShuffleEffect(element) {
-              if (element.cleanupShuffleEffect) {
-                  element.cleanupShuffleEffect();
+          item.addEventListener("mouseenter", () => {
+              if (bgHover && !item.id) {
+                  bgHover.style.opacity = "1";
               }
+              addShuffleEffect(linkElement);
+              if (spanElement) {
+                  addShuffleEffect(spanElement);
+              }
+          });
 
-              const chars = element.querySelectorAll(".char");
-              const originalText = [...chars].map((char) => char.textContent);
-              let intervals = [];
-
-              chars.forEach((char, index) => {
-                  const interval = setInterval(() => {
-                      char.textContent = String.fromCharCode(
-                          65 + Math.floor(Math.random() * 26)
-                      );
-                  }, 50);
-                  intervals.push(interval);
-
-                  setTimeout(() => {
-                      clearInterval(interval);
-                      char.textContent = originalText[index];
-                  }, 500 + index * 50);
-              });
-
-              element.cleanupShuffleEffect = () => {
-                  intervals.forEach(interval => clearInterval(interval));
-                  chars.forEach((char, index) => {
-                      char.textContent = originalText[index];
-                  });
-              };
-          }
-
-          if (!item.id || item.id !== 'active') {
-              item.addEventListener("mouseenter", () => {
-                  if (bgHover && !item.id) {
-                      bgHover.style.opacity = "1";
-                  }
-                  addShuffleEffect(linkElement);
-              });
-
-              item.addEventListener("mouseleave", () => {
-                  if (bgHover && !item.id) {
-                      bgHover.style.opacity = "0";
-                  }
-                  if (linkElement.cleanupShuffleEffect) {
-                      linkElement.cleanupShuffleEffect();
-                  }
-              });
-          } else {
-              // For active item, only do text shuffle on hover
-              item.addEventListener("mouseenter", () => {
-                  addShuffleEffect(linkElement);
-              });
-              item.addEventListener("mouseleave", () => {
-                  if (linkElement.cleanupShuffleEffect) {
-                      linkElement.cleanupShuffleEffect();
-                  }
-              });
-          }
+          item.addEventListener("mouseleave", () => {
+              if (bgHover && !item.id) {
+                  bgHover.style.opacity = "0";
+              }
+              if (linkElement.cleanupShuffleEffect) {
+                  linkElement.cleanupShuffleEffect();
+              }
+              if (spanElement && spanElement.cleanupShuffleEffect) {
+                  spanElement.cleanupShuffleEffect();
+              }
+          });
         }
     });
 
@@ -125,16 +135,37 @@ document.addEventListener("DOMContentLoaded", function() {
         cleanupAllEffects();
         links.forEach((link) => {
             const targetElement = link.querySelector(
-                ".menu-item-link a, .menu-title p, .menu-content p"
+                ".menu-item-link a"
             );
+            const spanElement = link.querySelector("span");
             if (targetElement) {
                 addShuffleEffect(targetElement);
             }
+            if (spanElement) {
+                addShuffleEffect(spanElement);
+            }
         });
-        setTimeout(() => {
-            isInitialLoadComplete = true;
-        }, 1000);
+
+        // Also shuffle menu sub items on open
+        document.querySelectorAll('.menu-sub-item').forEach(item => {
+            const titleElement = item.querySelector('.menu-title p');
+            const contentElement = item.querySelector('.menu-content p');
+            if (titleElement) addShuffleEffect(titleElement);
+            if (contentElement) addShuffleEffect(contentElement);
+        });
     }
+
+    menuToggle.addEventListener("click", () => {
+        menuContainer.style.left = "0%";
+        shuffleAll();
+        animateMenuItems(menuItems, "in");
+    });
+  
+    closeBtn.addEventListener("click", () => {
+        menuContainer.style.left = "-50%";
+        animateMenuItems(menuItems, "out");
+        cleanupAllEffects();
+    });
 
     // Handle page visibility change
     document.addEventListener('visibilitychange', () => {
